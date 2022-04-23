@@ -7,4 +7,4 @@ Projeto da Trybe que consistia em criar um Front-End de uma loja virtual usando 
 
 ### Preview
 
-[Alt text](images/preview-sjopping-cart.png)
+![Alt text](images/preview-sjopping-cart.png)
