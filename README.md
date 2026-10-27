@@ -19,6 +19,8 @@ A single-page store in plain JavaScript: search real Mercado Livre products and 
 
 Mercado Livre's public listing search now refuses requests without a token, and a token cannot live in a static page. The page calls a small Cloudflare Worker, [mercado-livre-proxy](https://github.com/gabrielncorreia/mercado-livre-proxy), which holds the credentials and returns only the fields the page uses.
 
+The proxy only answers the two apps. On the first request, the page passes an invisible Cloudflare Turnstile check and trades it for a 30-minute session token, sent with every request after that (`session.js`). A visitor sees the Turnstile box only if Cloudflare needs a click.
+
 ## Stack
 
 Plain JavaScript, HTML and CSS, with no framework, built with [Vite](https://vite.dev/) and published with `gh-pages`. Product data is rendered with `textContent` only, so nothing from the API is ever parsed as HTML.
@@ -40,4 +42,4 @@ npm run build     # production build in dist/, using the deployed proxy
 npm run deploy    # build and publish to GitHub Pages
 ```
 
-Set `VITE_PROXY_URL` to point either build at another proxy.
+Set `VITE_PROXY_URL` to point either build at another proxy, and `VITE_TURNSTILE_SITE_KEY` to override the Turnstile site key. Development uses Cloudflare's test key, which the local proxy accepts.

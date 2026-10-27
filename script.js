@@ -1,3 +1,5 @@
+import { getSessionToken } from './session.js';
+
 // Mercado Livre now refuses unauthenticated searches, so products come through
 // a small proxy (github.com/gabrielncorreia/mercado-livre-proxy) that holds the token.
 // `npm run dev` uses the local proxy; `npm run build` uses the deployed one. VITE_PROXY_URL overrides both.
@@ -5,6 +7,14 @@ const DEPLOYED = 'https://mercado-livre-proxy.gnc-apps-7.workers.dev';
 const API_URL = import.meta.env.VITE_PROXY_URL
   || (import.meta.env.PROD ? DEPLOYED : 'http://localhost:8799');
 const CART_KEY = 'shopCart.v2';
+
+// The proxy answers only requests with a session token; renew it once on 401.
+async function authorizedFetch(path, retried = false) {
+  const token = await getSessionToken(API_URL, retried);
+  const response = await fetch(`${API_URL}${path}`, { headers: { authorization: `Bearer ${token}` } });
+  if (response.status === 401 && !retried) return authorizedFetch(path, true);
+  return response;
+}
 
 const brl = (value) => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -117,7 +127,7 @@ async function search(query) {
   items.replaceChildren();
   setStatus('Carregando produtos...');
   try {
-    const response = await fetch(`${API_URL}/search?q=${encodeURIComponent(query)}`);
+    const response = await authorizedFetch(`/search?q=${encodeURIComponent(query)}`);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const { results } = await response.json();
     items.replaceChildren(...results.map(createProductItemElement));

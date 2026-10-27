@@ -368,3 +368,11 @@ button {
     font-size: 17px;
   }
 }
+
+/* Turnstile shows here only when Cloudflare needs the visitor to click. */
+.turnstile-box {
+  position: fixed;
+  right: 16px;
+  bottom: 84px;
+  z-index: 50;
+}
