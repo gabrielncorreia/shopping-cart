@@ -1,26 +1,52 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Projeto Shopping Cart</title>
+    <meta name="description" content="Shopping Cart: busque produtos reais do Mercado Livre e monte seu carrinho." />
+    <title>Shopping Cart</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" />
     <link rel="stylesheet" href="style.css" />
-    <script src="script.js"></script>
+    <script src="script.js" defer></script>
   </head>
 
   <body>
-    <h1>Projeto Shopping Cart</h1>
-    <h3 class="loading">Loading...</h3>
-    <section class="container">
-      <section class="items"></section>
-      <section class="cart">
-        <span class="cart__title">Carrinho de compras</span>
-        <button class="empty-cart">Esvaziar carrinho</button>
-        <ol class="cart__items"></ol>
-        <section class="total-price"><span class="price"></span></section>
+    <header class="topbar">
+      <p class="brand">Shopping Cart</p>
+      <form class="search" role="search">
+        <label for="search-input" class="visually-hidden">Buscar produtos</label>
+        <input id="search-input" type="search" placeholder="Buscar produtos" value="computador" maxlength="100" />
+        <button type="submit">Buscar</button>
+      </form>
+    </header>
+
+    <main class="container">
+      <section class="catalog" aria-labelledby="results-title">
+        <h1 id="results-title" class="results-title">Computador</h1>
+        <p class="status loading" role="status">Carregando produtos...</p>
+        <div class="items"></div>
       </section>
-        
-    </section>
+
+      <aside class="cart" id="cart" aria-labelledby="cart-title">
+        <div class="receipt">
+          <h2 id="cart-title" class="cart__title">Carrinho de compras</h2>
+          <p class="receipt-meta"></p>
+          <ol class="cart__items"></ol>
+          <p class="cart__empty">Seu carrinho está vazio. Adicione um produto.</p>
+          <div class="total-price">
+            <span>Total</span>
+            <span class="price">R$ 0,00</span>
+          </div>
+          <button type="button" class="empty-cart">Esvaziar carrinho</button>
+        </div>
+      </aside>
+    </main>
+
+    <a class="cart-bar" href="#cart">
+      <span class="cart-bar-count">0 itens</span>
+      <span class="cart-bar-total">R$ 0,00</span>
+    </a>
   </body>
 </html>

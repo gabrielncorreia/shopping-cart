@@ -1,147 +1,142 @@
-const url = 'https://api.mercadolibre.com/sites/MLB/search?q=computador';
+// Mercado Livre now refuses unauthenticated searches, so products come through
+// a small proxy (github.com/gabrielncorreia/mercado-livre-proxy) that holds the token.
+const LOCAL = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+const API_URL = LOCAL ? 'http://localhost:8799' : 'https://mercado-livre-proxy.workers.dev';
+const CART_KEY = 'shopCart.v2';
 
-function createProductImageElement(imageSource) {
-  const img = document.createElement('img');
-  img.className = 'item__image';
-  img.src = imageSource;
-  return img;
+const brl = (value) => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+// ---------- Cart state ----------
+
+function readCart() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CART_KEY));
+    return Array.isArray(saved) ? saved.filter((item) => item && item.id && item.quantity > 0) : [];
+  } catch {
+    return [];
+  }
 }
 
-function createCustomElement(element, className, innerText) {
-  const e = document.createElement(element);
-  e.className = className;
-  e.innerText = innerText;
-  return e;
+let cart = readCart();
+
+function saveCart() {
+  localStorage.setItem(CART_KEY, JSON.stringify(cart));
 }
 
-function createProductItemElement({ sku, name, image }) {
-  const section = document.createElement('section');
-  section.className = 'item';
-  
-  section.appendChild(createCustomElement('span', 'item__sku', sku));
-  section.appendChild(createCustomElement('span', 'item__title', name));
-  section.appendChild(createProductImageElement(image));
-  section.appendChild(createCustomElement('button', 'item__add', 'Adicionar ao carrinho!'));
-  
-  return section;
+function addToCart({ id, title, thumbnail, price }) {
+  const line = cart.find((item) => item.id === id);
+  if (line) line.quantity += 1;
+  else cart.push({ id, title, thumbnail, price, quantity: 1 });
+  saveCart();
+  renderCart();
 }
 
-function getSkuFromProductItem(item) {
-  // return item.querySelector('span.item__sku').innerText;
-  return item;
+function changeQuantity(id, delta) {
+  cart = cart
+    .map((item) => (item.id === id ? { ...item, quantity: item.quantity + delta } : item))
+    .filter((item) => item.quantity > 0);
+  saveCart();
+  renderCart();
 }
-getSkuFromProductItem('teste');
 
-const getCartItemsOl = () => document.querySelector('.cart__items');
-// Requisito 4:
-const saveCartState = () => {
-  const shopCartItems = getCartItemsOl().innerHTML;
-  const totalPriceSpan = document.querySelector('.price').innerText;
-  localStorage.setItem('shopCart', shopCartItems);
-  localStorage.setItem('totalPrice', totalPriceSpan);
-};
+// ---------- Rendering (textContent only: product data never becomes HTML) ----------
 
-const getShopCartFromLocalStorage = () => {
-  getCartItemsOl().innerHTML = localStorage.getItem('shopCart');
-  document.querySelector('.price').innerText = localStorage.getItem('totalPrice');
-};
+function element(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
 
-// Requisito 5:
-async function totalPrice() {
-  const currentCart = Array.from(document.getElementsByClassName('cart__item'));
-  const arraySplit = currentCart.map((product) => product.innerText.split(' '));
-  const totalPriceSpan = document.querySelector('.price');
-  let prices = [];
-  arraySplit.forEach((product) => {
-    prices.push(product[product.length - 1]);
+function createProductItemElement(product) {
+  const card = element('article', 'item');
+  const image = element('img', 'item__image');
+  image.src = product.thumbnail;
+  image.alt = '';
+  image.loading = 'lazy';
+  const button = element('button', 'item__add', 'Adicionar');
+  button.type = 'button';
+  button.setAttribute('aria-label', `Adicionar ${product.title} ao carrinho`);
+  button.addEventListener('click', () => {
+    addToCart(product);
+    button.textContent = 'Adicionado';
+    setTimeout(() => { button.textContent = 'Adicionar'; }, 1200);
   });
-  prices = prices.map((price) => price.replace('$', ''));
-  prices = prices.map((p) => Number(p));
-  totalPriceSpan.innerText = prices.reduce((acc, price) => acc + price, 0);
+  card.append(image, element('h3', 'item__title', product.title), element('p', 'item__price', brl(product.price)), button);
+  return card;
 }
 
-// Requisito 3:
-function cartItemClickListener() {
-  const currentCartProductsArray = Array.from(document.getElementsByClassName('cart__item'));
+function createCartItemElement(item) {
+  const li = element('li', 'cart__item');
+  const info = element('div', 'cart__item-info');
+  info.append(element('span', 'cart__item-name', item.title), element('span', 'cart__item-unit', `${item.quantity} × ${brl(item.price)}`));
 
-  currentCartProductsArray.forEach((product) => {
-    product.addEventListener('click', (event) => {
-      event.target.remove();
-      totalPrice();
-      saveCartState();
-    });
-  });
-}
+  const controls = element('div', 'cart__item-controls');
+  const minus = element('button', 'qty', '−');
+  minus.type = 'button';
+  minus.setAttribute('aria-label', `Remover uma unidade de ${item.title}`);
+  minus.addEventListener('click', () => changeQuantity(item.id, -1));
+  const plus = element('button', 'qty', '+');
+  plus.type = 'button';
+  plus.setAttribute('aria-label', `Adicionar uma unidade de ${item.title}`);
+  plus.addEventListener('click', () => changeQuantity(item.id, 1));
+  controls.append(minus, plus, element('span', 'cart__item-total', brl(item.price * item.quantity)));
 
-// Requisito 7:
-const removeLoading = () => {
-  const loading = document.querySelector('.loading');
-  loading.remove();
-};
-
-function createCartItemElement({ sku, name, salePrice }) {
-  const li = document.createElement('li');
-  li.className = 'cart__item';
-  li.innerText = `SKU: ${sku} | NAME: ${name} | PRICE: $${salePrice}`;
-  // li.addEventListener('click', cartItemClickListener);
+  li.append(info, controls);
   return li;
 }
 
-// Requisito 2:
-const getAllAddCartButtons = () => {
-  const addCartButton = document.querySelectorAll('.item__add');
-  for (let i = 0; i < addCartButton.length; i += 1) {
-    addCartButton[i].addEventListener('click', (event) => {
-      const id = event.target.parentNode.firstElementChild.innerText;
-      const url2 = `https://api.mercadolibre.com/items/${id}`;
-      fetch(url2)
-        .then((response) => response.json())
-          .then((object) => object).then((result) => {
-            const cart = getCartItemsOl();
-            console.log(result);
-            const { id: sku, title: name, price: salePrice } = result;
-            cart.appendChild(createCartItemElement({ sku, name, salePrice }));
-            cartItemClickListener();
-            totalPrice();
-            saveCartState();
-          });
-    });
+function renderCart() {
+  const list = document.querySelector('.cart__items');
+  list.replaceChildren(...cart.map(createCartItemElement));
+  const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const total = brl(cart.reduce((sum, item) => sum + item.price * item.quantity, 0));
+  const label = `${count} ${count === 1 ? 'item' : 'itens'}`;
+  document.querySelector('.price').textContent = total;
+  document.querySelector('.cart__empty').hidden = count > 0;
+  document.querySelector('.empty-cart').hidden = count === 0;
+  document.querySelector('.receipt-meta').textContent = label;
+  document.querySelector('.cart-bar-count').textContent = label;
+  document.querySelector('.cart-bar-total').textContent = total;
+  document.querySelector('.cart-bar').hidden = count === 0;
+}
+
+// ---------- Catalog ----------
+
+function setStatus(text) {
+  const status = document.querySelector('.status');
+  status.textContent = text;
+  status.hidden = !text;
+}
+
+async function search(query) {
+  const items = document.querySelector('.items');
+  document.querySelector('.results-title').textContent = query.charAt(0).toUpperCase() + query.slice(1);
+  items.replaceChildren();
+  setStatus('Carregando produtos...');
+  try {
+    const response = await fetch(`${API_URL}/search?q=${encodeURIComponent(query)}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const { results } = await response.json();
+    items.replaceChildren(...results.map(createProductItemElement));
+    setStatus(results.length ? '' : 'Nenhum produto encontrado. Tente outra palavra.');
+  } catch {
+    setStatus('Não foi possível carregar os produtos. Tente de novo em alguns segundos.');
   }
-};
+}
 
-// Requisito 1:
-const fetchAPI = () => {
-  fetch(url)
-  .then((response) => response.json())
-  .then((object) => object.results)
-  .then((results) => {
-    const itemsSections = document.querySelector('.items');
-    results.map(({ id: sku, title: name, thumbnail: image }) => 
-    itemsSections.appendChild(createProductItemElement({ sku, name, image }))); 
-    // Usamos o .map para iterar sobre o array results, que, em cada chave, contem um objeto com uma chave id, que agora será chamado por sku, uma chave title, que agora será chamada de name, e uma chave thumbnail, que agora será chamada de image.
-    const teste = Array.from(results);
-    // const teste2 = Array.from(results, ({ id: sku, title: name, thumbnail: image }) => 
-    // `${sku}, ${name}, ${image}`); // Dá pra resolver assim tbm. Ai dentro dessa função map vc coloca faz o appendChild.
-    console.log(teste.map((produto) => produto.id)); // da na mesma de usar results.map() igual anteriormente
-    removeLoading();
-    getAllAddCartButtons();
+window.addEventListener('DOMContentLoaded', () => {
+  const input = document.querySelector('#search-input');
+  document.querySelector('.search').addEventListener('submit', (event) => {
+    event.preventDefault();
+    const query = input.value.trim();
+    if (query) search(query);
   });
-};
-
-window.onload = async () => {
-  await fetchAPI();
-  const emptyCartButton = document.querySelector('.empty-cart');
-  // Requisito 6:
-  emptyCartButton.addEventListener('click', () => {
-    const cartItems = document.querySelector('.cart__items');
-    cartItems.innerHTML = '';
-    document.querySelector('.price').innerText = 0;
-    saveCartState();
+  document.querySelector('.empty-cart').addEventListener('click', () => {
+    cart = [];
+    saveCart();
+    renderCart();
   });
-  getShopCartFromLocalStorage();
-  cartItemClickListener();
-};
-
-window.addEventListener('click', (event) => {
-  console.log(event);
+  renderCart();
+  search(input.value);
 });
