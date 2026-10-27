@@ -21,7 +21,7 @@ Mercado Livre's public listing search now refuses requests without a token, and 
 
 ## Stack
 
-Plain JavaScript, HTML and CSS, with no framework or build step. Product data is rendered with `textContent` only, so nothing from the API is ever parsed as HTML.
+Plain JavaScript, HTML and CSS, with no framework, built with [Vite](https://vite.dev/) and published with `gh-pages`. Product data is rendered with `textContent` only, so nothing from the API is ever parsed as HTML.
 
 ## About the project
 
@@ -31,10 +31,13 @@ In 2026 I moved it to the proxy and rewrote it: the cart used to be saved as raw
 
 ## Running locally
 
-Start the proxy locally (see its README), which serves on `http://localhost:8799`. Then serve this folder with any static server, for example:
+Requires Node.js. Start the proxy locally (see its README), which serves on `http://localhost:8799`. Then, from the project folder:
 
 ```sh
-python -m http.server 5500
+npm install
+npm run dev       # app at http://localhost:5500/shopping-cart/, using the local proxy
+npm run build     # production build in dist/, using the deployed proxy
+npm run deploy    # build and publish to GitHub Pages
 ```
 
-and open http://localhost:5500. The page uses the local proxy when it runs on `localhost`.
+Set `VITE_PROXY_URL` to point either build at another proxy.

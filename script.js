@@ -1,7 +1,9 @@
 // Mercado Livre now refuses unauthenticated searches, so products come through
 // a small proxy (github.com/gabrielncorreia/mercado-livre-proxy) that holds the token.
-const LOCAL = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-const API_URL = LOCAL ? 'http://localhost:8799' : 'https://mercado-livre-proxy.gnc-apps-7.workers.dev';
+// `npm run dev` uses the local proxy; `npm run build` uses the deployed one. VITE_PROXY_URL overrides both.
+const DEPLOYED = 'https://mercado-livre-proxy.gnc-apps-7.workers.dev';
+const API_URL = import.meta.env.VITE_PROXY_URL
+  || (import.meta.env.PROD ? DEPLOYED : 'http://localhost:8799');
 const CART_KEY = 'shopCart.v2';
 
 const brl = (value) => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
